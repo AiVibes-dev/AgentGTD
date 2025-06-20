@@ -7,7 +7,7 @@ import (
 	"encore.dev/storage/sqldb"
 )
 
-// Database instance
+// Database instance - this defines the "goals" database
 var db = sqldb.NewDatabase("goals", sqldb.DatabaseConfig{
 	Migrations: "./migrations",
 })
