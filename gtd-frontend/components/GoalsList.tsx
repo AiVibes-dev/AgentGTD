@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import {
   View,
   Text,
@@ -10,70 +10,42 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Goal } from '../types/goal';
+import { useGoals } from '../hooks/useGoals';
+import { getRelativeTime } from '../utils/dateUtils';
+import { COLORS, SPACING, BORDER_RADIUS, TYPOGRAPHY, SHADOWS } from '../constants';
 
 interface GoalsListProps {
   onGoalPress?: (goal: Goal) => void;
+  creating?: boolean;
 }
 
-export default function GoalsList({ onGoalPress }: GoalsListProps) {
-  const [goals, setGoals] = useState<Goal[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const fetchGoals = async () => {
-    try {
-      setError(null);
-      const response = await fetch('http://127.0.0.1:4000/goals');
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      const data = await response.json();
-      setGoals(data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch goals');
-      console.error('Error fetching goals:', err);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchGoals();
-  }, []);
-
-  const onRefresh = () => {
-    setRefreshing(true);
-    fetchGoals();
-  };
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    });
-  };
+export default function GoalsList({ onGoalPress, creating = false }: GoalsListProps) {
+  const {
+    goals,
+    loading,
+    error,
+    refreshing,
+    refreshGoals,
+  } = useGoals();
 
   const renderGoalItem = ({ item }: { item: Goal }) => (
     <TouchableOpacity
       style={styles.goalItem}
       onPress={() => onGoalPress?.(item)}
       activeOpacity={0.7}
+      disabled={creating}
     >
       <View style={styles.goalContent}>
         <Text style={styles.goalTitle}>{item.title}</Text>
-        <Text style={styles.goalDate}>Created: {formatDate(item.createdAt)}</Text>
+        <Text style={styles.goalDate}>Created: {getRelativeTime(item.createdAt)}</Text>
       </View>
-      <Ionicons name="chevron-forward" size={20} color="#666" />
+      <Ionicons name="chevron-forward" size={20} color={COLORS.text.secondary} />
     </TouchableOpacity>
   );
 
   const renderEmptyState = () => (
     <View style={styles.emptyState}>
-      <Ionicons name="list-outline" size={64} color="#ccc" />
+      <Ionicons name="list-outline" size={64} color={COLORS.text.tertiary} />
       <Text style={styles.emptyStateText}>No goals yet</Text>
       <Text style={styles.emptyStateSubtext}>Create your first goal to get started</Text>
     </View>
@@ -81,19 +53,26 @@ export default function GoalsList({ onGoalPress }: GoalsListProps) {
 
   const renderErrorState = () => (
     <View style={styles.errorState}>
-      <Ionicons name="alert-circle-outline" size={64} color="#ff6b6b" />
+      <Ionicons name="alert-circle-outline" size={64} color={COLORS.error} />
       <Text style={styles.errorText}>Failed to load goals</Text>
       <Text style={styles.errorSubtext}>{error}</Text>
-      <TouchableOpacity style={styles.retryButton} onPress={fetchGoals}>
+      <TouchableOpacity style={styles.retryButton} onPress={refreshGoals}>
         <Text style={styles.retryButtonText}>Retry</Text>
       </TouchableOpacity>
+    </View>
+  );
+
+  const renderCreatingState = () => (
+    <View style={styles.creatingState}>
+      <ActivityIndicator size="large" color={COLORS.primary} />
+      <Text style={styles.creatingText}>Creating goal...</Text>
     </View>
   );
 
   if (loading && !refreshing) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#007AFF" />
+        <ActivityIndicator size="large" color={COLORS.primary} />
         <Text style={styles.loadingText}>Loading goals...</Text>
       </View>
     );
@@ -101,6 +80,10 @@ export default function GoalsList({ onGoalPress }: GoalsListProps) {
 
   if (error && !refreshing) {
     return renderErrorState();
+  }
+
+  if (creating) {
+    return renderCreatingState();
   }
 
   return (
@@ -112,7 +95,7 @@ export default function GoalsList({ onGoalPress }: GoalsListProps) {
       contentContainerStyle={goals.length === 0 ? styles.emptyContainer : undefined}
       ListEmptyComponent={renderEmptyState}
       refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        <RefreshControl refreshing={refreshing} onRefresh={refreshGoals} />
       }
       showsVerticalScrollIndicator={false}
     />
@@ -122,48 +105,52 @@ export default function GoalsList({ onGoalPress }: GoalsListProps) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: COLORS.background,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f8f9fa',
+    backgroundColor: COLORS.background,
   },
   loadingText: {
-    marginTop: 16,
-    fontSize: 16,
-    color: '#666',
+    marginTop: SPACING.md,
+    fontSize: TYPOGRAPHY.sizes.md,
+    color: COLORS.text.secondary,
+  },
+  creatingState: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: COLORS.background,
+  },
+  creatingText: {
+    marginTop: SPACING.md,
+    fontSize: TYPOGRAPHY.sizes.md,
+    color: COLORS.text.secondary,
   },
   goalItem: {
-    backgroundColor: '#fff',
-    marginHorizontal: 16,
-    marginVertical: 4,
-    padding: 16,
-    borderRadius: 12,
+    backgroundColor: COLORS.surface,
+    marginHorizontal: SPACING.md,
+    marginVertical: SPACING.xs,
+    padding: SPACING.md,
+    borderRadius: BORDER_RADIUS.lg,
     flexDirection: 'row',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
+    ...SHADOWS.sm,
   },
   goalContent: {
     flex: 1,
   },
   goalTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1a1a1a',
-    marginBottom: 4,
+    fontSize: TYPOGRAPHY.sizes.lg,
+    fontWeight: TYPOGRAPHY.weights.semibold,
+    color: COLORS.text.primary,
+    marginBottom: SPACING.xs,
   },
   goalDate: {
-    fontSize: 14,
-    color: '#666',
+    fontSize: TYPOGRAPHY.sizes.sm,
+    color: COLORS.text.secondary,
   },
   emptyContainer: {
     flex: 1,
@@ -173,48 +160,48 @@ const styles = StyleSheet.create({
   emptyState: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 64,
+    paddingVertical: SPACING.xxl,
   },
   emptyStateText: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#666',
-    marginTop: 16,
+    fontSize: TYPOGRAPHY.sizes.xl,
+    fontWeight: TYPOGRAPHY.weights.semibold,
+    color: COLORS.text.secondary,
+    marginTop: SPACING.md,
   },
   emptyStateSubtext: {
-    fontSize: 16,
-    color: '#999',
-    marginTop: 8,
+    fontSize: TYPOGRAPHY.sizes.md,
+    color: COLORS.text.tertiary,
+    marginTop: SPACING.sm,
     textAlign: 'center',
   },
   errorState: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 32,
+    paddingHorizontal: SPACING.xl,
   },
   errorText: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#ff6b6b',
-    marginTop: 16,
+    fontSize: TYPOGRAPHY.sizes.xl,
+    fontWeight: TYPOGRAPHY.weights.semibold,
+    color: COLORS.error,
+    marginTop: SPACING.md,
   },
   errorSubtext: {
-    fontSize: 16,
-    color: '#666',
-    marginTop: 8,
+    fontSize: TYPOGRAPHY.sizes.md,
+    color: COLORS.text.secondary,
+    marginTop: SPACING.sm,
     textAlign: 'center',
-    marginBottom: 24,
+    marginBottom: SPACING.lg,
   },
   retryButton: {
-    backgroundColor: '#007AFF',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
+    backgroundColor: COLORS.primary,
+    paddingHorizontal: SPACING.lg,
+    paddingVertical: SPACING.md,
+    borderRadius: BORDER_RADIUS.md,
   },
   retryButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
+    color: COLORS.text.inverse,
+    fontSize: TYPOGRAPHY.sizes.md,
+    fontWeight: TYPOGRAPHY.weights.semibold,
   },
 }); 

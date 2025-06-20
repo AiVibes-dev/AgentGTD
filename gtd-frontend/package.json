@@ -12,6 +12,7 @@
     "@expo/metro-runtime": "~5.0.4",
     "@expo/vector-icons": "^14.1.0",
     "expo": "~53.0.12",
+    "expo-constants": "^17.1.6",
     "expo-status-bar": "~2.2.3",
     "react": "19.0.0",
     "react-dom": "19.0.0",
