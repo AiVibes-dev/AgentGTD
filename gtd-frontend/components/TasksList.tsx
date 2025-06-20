@@ -19,13 +19,15 @@ interface TasksListProps {
   goalTitle: string;
   onTaskPress?: (task: Task) => void;
   creating?: boolean;
+  showToast?: (message: string, type: 'success' | 'error' | 'info') => void;
 }
 
 export default function TasksList({ 
   goalId, 
   goalTitle, 
   onTaskPress, 
-  creating = false 
+  creating = false,
+  showToast
 }: TasksListProps) {
   const {
     tasks,
@@ -39,7 +41,15 @@ export default function TasksList({
   } = useTasks(goalId);
 
   const handleToggleCompletion = async (task: Task) => {
-    await toggleTaskCompletion(task.id, !task.completed);
+    const result = await toggleTaskCompletion(task.id, !task.completed);
+    if (result && showToast) {
+      showToast(
+        task.completed ? 'Task marked as incomplete!' : 'Task marked as complete!',
+        'success'
+      );
+    } else if (!result && showToast) {
+      showToast('Failed to update task. Please try again.', 'error');
+    }
   };
 
   const renderTaskItem = ({ item }: { item: Task }) => (

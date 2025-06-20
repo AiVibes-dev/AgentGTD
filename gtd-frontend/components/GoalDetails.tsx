@@ -9,6 +9,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import TasksList from './TasksList';
+import Toast from './Toast';
 import { Goal } from '../types/goal';
 import { COLORS, SPACING, BORDER_RADIUS, TYPOGRAPHY, SHADOWS } from '../constants';
 
@@ -17,8 +18,15 @@ interface GoalDetailsProps {
   onBack: () => void;
 }
 
+type ToastType = 'success' | 'error' | 'info';
+
 export default function GoalDetails({ goal, onBack }: GoalDetailsProps) {
   const [isCreatingTask, setIsCreatingTask] = useState(false);
+  const [toast, setToast] = useState({
+    visible: false,
+    message: '',
+    type: 'info' as ToastType,
+  });
 
   const handleTaskPress = (task: any) => {
     // TODO: Navigate to task details or edit task
@@ -28,6 +36,14 @@ export default function GoalDetails({ goal, onBack }: GoalDetailsProps) {
   const handleAddTask = () => {
     // TODO: Open create task modal
     console.log('Add task pressed for goal:', goal.id);
+  };
+
+  const showToast = (message: string, type: ToastType) => {
+    setToast({ visible: true, message, type });
+  };
+
+  const hideToast = () => {
+    setToast(prev => ({ ...prev, visible: false }));
   };
 
   return (
@@ -64,6 +80,15 @@ export default function GoalDetails({ goal, onBack }: GoalDetailsProps) {
         goalTitle={goal.title}
         onTaskPress={handleTaskPress}
         creating={isCreatingTask}
+        showToast={showToast}
+      />
+
+      {/* Toast */}
+      <Toast
+        visible={toast.visible}
+        message={toast.message}
+        type={toast.type}
+        onHide={hideToast}
       />
     </SafeAreaView>
   );

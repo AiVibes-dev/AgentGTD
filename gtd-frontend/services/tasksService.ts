@@ -46,7 +46,8 @@ class TasksService {
   }
 
   async toggleTaskCompletion(id: number, completed: boolean): Promise<ApiResponse<Task>> {
-    return this.updateTask(id, { completed });
+    // Use PATCH /tasks/update with { taskId, completed }
+    return apiService.patch<Task>(`${this.endpoint}/update`, { taskId: id, completed });
   }
 }
 
